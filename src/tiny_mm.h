@@ -27,6 +27,13 @@ extern "C"
 {
 #endif
 
+/** Specifies memory alignment */
+#ifdef __AVR__
+#define MM_ALIGNMENT  1
+#else
+#define MM_ALIGNMENT  4
+#endif
+
 /**
  * @brief initializes memory pool
  *

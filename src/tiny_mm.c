@@ -23,7 +23,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#pragma pack(push, 1)
+#define MM_ALIGN_LEFT(x) (uint8_t *)((uintptr_t)(x) & ~(uintptr_t)(MM_ALIGNMENT-1))
+#define MM_ALIGN_RIGHT(x) (uint8_t *)((uintptr_t)(x + MM_ALIGNMENT - 1) & ~(uintptr_t)(MM_ALIGNMENT-1))
 
 typedef struct _tiny_block_t
 {
@@ -32,9 +33,7 @@ typedef struct _tiny_block_t
     uint8_t flags;  ///< flags
 } tiny_block_t;
 
-#pragma pack(pop)
-
-static const int MIN_OVERHEAD = 8 + sizeof(tiny_block_t);
+static const int MIN_OVERHEAD = MM_ALIGNMENT + sizeof(tiny_block_t);
 
 static inline int is_free_block( tiny_block_t * block )
 {
@@ -53,7 +52,7 @@ static inline int get_block_data_size( tiny_block_t * block )
 
 static inline tiny_block_t* get_first_block( void* pool )
 {
-    return (tiny_block_t *)pool;
+    return (tiny_block_t *)(pool);
 }
 
 static inline void mark_block_as_used( tiny_block_t * block )
@@ -94,24 +93,44 @@ static tiny_block_t * find_free_block( void* pool, int payload_size )
     return block;
 }
 
-static tiny_block_t * split_block( tiny_block_t * block, int size )
+static void split_block_internal( tiny_block_t * block, uint8_t* new_block_location )
+{
+    tiny_block_t * new_block = (tiny_block_t *)new_block_location;
+    new_block->next = block->next;
+    new_block->prev = block;
+    block->next->prev = new_block;
+    block->next = new_block;
+    new_block->flags = block->flags;
+}
+
+static tiny_block_t * split_block_right( tiny_block_t * block, int size )
 {
     tiny_block_t * new_block;
-    if (get_block_size( block ) <= size + 2*sizeof(tiny_block_t))
+    if (get_block_size( block ) <= size + MIN_OVERHEAD )
     {
+        /* do not split the block. We do not have space to place new block */
         new_block = block;
     }
     else
     {
-        uint8_t flags = block->flags;
-        new_block = (tiny_block_t *)((uint8_t *)block->next - size - sizeof(tiny_block_t));
-        new_block->next = block->next;
-        new_block->prev = block;
-        block->next->prev = new_block;
-        block->next = new_block;
-        new_block->flags = flags;
+        split_block_internal(block, MM_ALIGN_LEFT((uint8_t *)block->next - size) - sizeof(tiny_block_t));
+        new_block = block->next;
     }
     return new_block;
+}
+
+static tiny_block_t * split_block_left( tiny_block_t * block, int size )
+{
+    if (get_block_size( block ) <= size + MIN_OVERHEAD )
+    {
+        /* do not split the block. We do not have space to place new block */
+    }
+    else
+    {
+        split_block_internal(block, MM_ALIGN_RIGHT((uint8_t *)block + size + sizeof(tiny_block_t)*2) -
+                                     sizeof(tiny_block_t));
+    }
+    return block;
 }
 
 static inline void combine_with_next_block( tiny_block_t * block )
@@ -156,7 +175,7 @@ void* mm_alloc( void* pool, int size )
     {
         return NULL;
     }
-    block = split_block( block, size );
+    block = split_block_right( block, size );
     mark_block_as_used( block );
     return block_to_data( block );
 }
@@ -168,13 +187,13 @@ void mm_free( void* pool, void* data )
     combine_block( block );
 }
 
-void* mm_resize( void* pool, void * data, int new_size )
+void* mm_resize( void* pool, void* data, int new_size )
 {
-    tiny_block_t * block = data_to_block( data );
+    tiny_block_t* block = data_to_block( data );
     int delta = new_size - get_block_data_size(block);
     if (delta < 0)
     {
-        tiny_block_t * next_block = split_block( block, -delta - sizeof(tiny_block_t) );
+        tiny_block_t * next_block = split_block_right( block, -delta - sizeof(tiny_block_t) );
         if (next_block != block)
         {
             mm_free( pool, next_block );
@@ -191,7 +210,7 @@ void* mm_resize( void* pool, void * data, int new_size )
             if (size > delta + sizeof(tiny_block_t))
             {
                 // try to split block to leave some place for other buffers
-                split_block( next_block, size + delta - sizeof(tiny_block_t) );
+                split_block_left( next_block, size + delta - sizeof(tiny_block_t) );
             }
             combine_with_next_block( block );
         }
@@ -216,7 +235,7 @@ void* mm_resize_head( void* pool, void * data, int new_size )
     int delta = new_size - get_block_data_size(block);
     if (delta < 0)
     {
-        tiny_block_t * next_block = split_block( block, new_size );
+        tiny_block_t * next_block = split_block_right( block, new_size );
         if (next_block != block)
         {
             mm_free( pool, block );
