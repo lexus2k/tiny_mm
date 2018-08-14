@@ -65,6 +65,21 @@ static void check_resize_head_no_space_in_front(void)
     mm_free( pool, p2 );
 }
 
+static void check_alignment(void)
+{
+    void *p1 = mm_alloc(pool, 71);
+    void *p2 = mm_alloc(pool, 123);
+    fprintf(stderr, "######### check mm alignment\n");
+    assert( (uintptr_t)p1 % (uintptr_t)MM_ALIGNMENT == 0 );
+    assert( (uintptr_t)p2 % (uintptr_t)MM_ALIGNMENT == 0 );
+    mm_free( pool, p1 );
+    mm_print( pool );
+    p2 = mm_resize( pool, p2, 137 );
+    mm_print( pool );
+    assert( (uintptr_t)p2 % (uintptr_t)MM_ALIGNMENT == 0 );
+    mm_free( pool, p2 );
+}
+
 int main(int argc, char *argv[])
 {
     int size;
@@ -76,6 +91,7 @@ int main(int argc, char *argv[])
     check_alloc_free();
     check_resize_head();
     check_resize_head_no_space_in_front();
+    check_alignment();
 
     assert( size == mm_free_size(pool) );
     fprintf(stderr, "######### [DONE]\n");

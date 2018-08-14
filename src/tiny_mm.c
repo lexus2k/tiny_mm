@@ -210,7 +210,7 @@ void* mm_resize( void* pool, void* data, int new_size )
             if (size > delta + sizeof(tiny_block_t))
             {
                 // try to split block to leave some place for other buffers
-                split_block_left( next_block, size + delta - sizeof(tiny_block_t) );
+                split_block_left( next_block, delta );
             }
             combine_with_next_block( block );
         }
