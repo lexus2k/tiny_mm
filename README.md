@@ -13,8 +13,9 @@
 
 ## Introduction
 
-Tiny memory manager can be used for dynamic allocation in AVR Arduino environment.
-
+Tiny memory manager can be used for dynamic memory allocations. Remember that many systems (and mcu controllers)
+have built-in memory manager. This library can be used to allocate memory blocks from predefined pool.
+And comments and wishes, please submit to issues section.
 
 ## Key Features
 
