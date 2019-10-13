@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
 ## Supported platforms
 
-Any platform should be find with this library.
+Any platform should be fine with this library.
 
 ## Setting up
 
