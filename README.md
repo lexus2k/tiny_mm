@@ -13,13 +13,12 @@
 
 ## Introduction
 
-Tiny memory manager can be used for dynamic memory allocations. Remember that many systems (and mcu controllers)
-have built-in memory manager. This library can be used to allocate memory blocks from predefined pool.
-And comments and wishes, please submit to issues section.
+Tiny memory manager can be used for dynamic memory allocations. This library can be used to allocate memory blocks from predefined pool.
+Please submit any comments and wishes to issues section.
 
 ## Key Features
 
- * Simple and easy to use
+ * Simple API and easy to use
  * Allows resizing of allocated blocks
  * Small overhead (but please, be careful: each allocation eats at least 5 bytes)
 
@@ -62,7 +61,7 @@ The library is free. If this project helps you, you can give me a cup of coffee.
 
 == License ==
 
-Copyright (C) 2018 Alexey Dynda
+Copyright (C) 2018, 2020 Alexey Dynda
 
 This file is part of Tiny memory manager Library.
 
